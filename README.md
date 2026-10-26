@@ -1,224 +1,163 @@
-# Customer Churn Prediction and Retention Optimisation
+# Bank Customer Churn: EDA and Preprocessing Report
 
-**Team:** Team ChurnGuard  
-**Tagline:** Turning Customer Data into Retention Strategies
+## 1. Project objective
 
-## 1. Project Overview
+The goal of this work was to explore the Bank Churners dataset and prepare its features for a future machine learning model that predicts whether a customer is existing or attrited. Exploratory data analysis (EDA) helps us understand the data before making decisions. Preprocessing makes the data usable by machine learning algorithms.
 
-This project explores customer attrition in a banking dataset and prepares the data for a future machine-learning workflow. The aim is to understand which customer characteristics and behaviours are associated with attrition and to carry out the data-cleaning and preprocessing steps needed before model development.
+The target column is `Attrition_Flag`.
 
-**Current scope:** Exploratory Data Analysis (EDA) and data preprocessing. Model training, model evaluation, churn predictions, and live retention recommendations have not been completed yet.
+## 2. Dataset overview
 
-## 2. Problem Statement
+The dataset contains **10,127 rows and 23 columns**. It includes customer details, account information, transaction measurements, the churn label, and two Naive Bayes score columns. The two score columns are related to the target and are excluded from model inputs to avoid giving a model information derived from the answer.
 
-Customer attrition can affect a bank's customer relationships and long-term business performance. Analysing historical customer information can help identify patterns associated with customers who have left. This project examines those patterns and prepares the dataset for possible future churn prediction and retention analysis.
+The `CLIENTNUM` column identifies a customer. It is useful for reference but is not a meaningful measurement of customer behavior, so it is excluded from model inputs too.
 
-The visualisations show associations in the dataset; they do not prove that a particular feature causes a customer to leave.
+## 3. Main graph: target distribution
 
-## 3. Project Objectives
+The target count plot shows that existing customers are much more common than attrited customers.
 
-- Inspect the dataset's structure, data types, and summary statistics.
-- Examine the balance between existing and attrited customers.
-- Visualise numerical feature distributions and potential outliers.
-- Compare numerical features across attrition groups.
-- Explore attrition percentages across categorical features.
-- Inspect correlations between numerical features.
-- Check missing values and duplicate rows.
-- Complete justified preprocessing, including outlier treatment, categorical encoding, and feature scaling.
+```mermaid
+xychart-beta
+    title "Customer attrition distribution"
+    x-axis [Existing, Attrited]
+    y-axis "Number of customers" 0 --> 9000
+    bar [8500, 1627]
+```
 
-## 4. Dataset
+| Target class | Customers | Percentage |
+|---|---:|---:|
+| Existing Customer | 8,500 | 83.93% |
+| Attrited Customer | 1,627 | 16.07% |
 
-- **Dataset:** Bank Churners
-- **File used by the notebook:** `BankChurners.csv`
-- **Shape shown in the notebook:** 10,127 rows and 23 columns
-- **Target column:** `Attrition_Flag`
-- **Target categories:** `Existing Customer` and `Attrited Customer`
+**What it tells us:** The classes are imbalanced: about five existing customers appear for every attrited customer. A model could get a seemingly high accuracy by mostly predicting “Existing Customer,” while still missing many customers who leave.
 
-The dataset includes customer demographic information, account characteristics, and transaction-related features.
+**Why it is useful:** This plot provides context for later model evaluation. When a model is built, accuracy should be considered alongside metrics such as recall, precision, F1-score, and the confusion matrix. The train/test split uses stratification so both sets keep a similar class ratio.
 
-### Important columns to review
+## 4. What we did and why
 
-- `Attrition_Flag` is the target label for attrition status.
-- `CLIENTNUM` is a customer identifier and should not be used as a predictive feature.
-- Columns beginning with `Naive_Bayes_Classifier_` should be investigated and excluded from a future prediction workflow if they contain target-derived information or predictions produced using the target. Keeping them may cause target leakage.
+### 4.1 Loaded and inspected the data
 
-## 5. Exploratory Data Analysis Completed So Far
+We loaded `BankChurners.csv`, displayed a random sample, printed the column names, checked data types and row counts with `info()`, and reviewed numerical summary statistics with `describe()`.
 
-The following graph images are included in this repository under the `images/` folder. They were generated from the uploaded Bank Churners dataset and correspond to the analyses described below. The notebook also contains individual boxplots for numerical features; those are not all duplicated here to keep the README readable.
+**Why:** This first check confirms the file loaded correctly, shows the dataset’s size and types, and gives a quick view of the numerical ranges. It helps catch unexpected columns, incorrect data types, and implausible values early.
 
-### 5.1 Dataset inspection
+**What we found:** There are 10,127 records and 23 columns. The numeric measurements include customer age, credit limit, transaction amount, transaction count, and utilization ratio. Several columns are categorical, such as gender, education, income, card category, and attrition status.
 
-The notebook displays a sample of the data, lists column names, checks data types with `df.info()`, and displays descriptive statistics with `df.describe()`.
+### 4.2 Checked missing values and duplicate rows
 
-### 5.2 Customer attrition distribution
+We counted missing values and exact duplicate rows. The recorded output showed **no missing values and no duplicate rows**. The cleaning code still removes duplicate rows and records with a missing target, so it can handle those problems if they appear in a different copy of the data.
 
-A count plot titled **Customer Attrition Distribution** compares the number of existing and attrited customers. The notebook also prints counts and percentages for each target category.
+**Why:** Missing values can prevent some analyses or model steps from working. Duplicate rows can make repeated observations count more than once and distort results.
 
-**Why it matters:** This shows the class distribution and helps identify whether attrited customers are a minority class.
+**Usefulness:** This check tells us whether data-cleaning steps are necessary. Here, the checks show the dataset is complete as provided, and cleaning did not change its size.
 
-![Customer attrition distribution](images/customer-attrition-distribution.png)
+### 4.3 Examined numerical feature distributions
 
-*Figure 1. Number of existing and attrited customers.*
+Histograms were created for numerical features, followed by boxplots. The customer ID and the target-derived Naive Bayes columns were excluded from these plots because they are not ordinary behavioral measurements.
 
-### 5.3 Numerical feature distributions
+**Why:** Histograms show the shape and spread of a feature, including skew and concentration. Boxplots give a compact view of the median, quartiles, and values far from the central range.
 
-Histograms are plotted for numerical columns after excluding `CLIENTNUM` and columns beginning with `Naive_Bayes_Classifier_`.
+**Usefulness:** These plots help identify features that may need closer inspection, guide the choice of scaling, and provide an initial view of possible outliers. A point outside a boxplot’s whiskers is only a statistical flag; it is not automatically a data error.
 
-**Why it matters:** Histograms help reveal skewness, concentration, spread, and unusual values that may need further investigation.
+### 4.4 Examined relationships between numerical features
 
-![Numerical feature distributions](images/numerical-feature-distributions.png)
+A correlation heatmap was used to visualize pairwise linear relationships among numerical features.
 
-*Figure 2. Distributions of numerical features, excluding the customer ID and Naive Bayes output columns.*
+**Why:** Highly related features can contain overlapping information. Correlation is a useful first check for redundancy and can help explain patterns before modeling.
 
-### 5.4 Numerical feature boxplots
+**Usefulness:** The heatmap is a compact way to scan many pairs at once. Correlation does not prove that one feature causes another, and a low correlation does not rule out a more complex relationship.
 
-The notebook creates a boxplot for each selected numerical feature.
+> **Notebook run note:** In the pasted notebook, the heatmap cell uses `correlation_matrix`, but the visible cell sources do not show where it is assigned. It ran in the saved session, which may mean the variable was created in an earlier cell that is not included. For a fresh “Run All,” make sure this line appears before the heatmap: `correlation_matrix = df[numerical_columns].corr()`.
 
-**Why it matters:** Boxplots help flag observations outside the IQR-based whiskers. Such observations are potential outliers, not automatically data errors.
+### 4.5 Compared churn across categories
 
-### 5.5 Correlation heatmap
+For each categorical feature, the notebook calculated the percentage of customers in each attrition class within that category and plotted the attrited-customer percentage.
 
-The notebook includes code for a **Correlation Heatmap** of numerical features.
+**Why:** Raw counts can be misleading when categories have different numbers of customers. Percentages make category-level churn rates easier to compare.
 
-**Why it matters:** Correlation can reveal strongly related features and possible redundancy. Correlation does not establish causation.
+**Examples from the output:**
 
-![Correlation heatmap](images/correlation-heatmap.png)
+- Churn was 17.36% for women and 14.62% for men.
+- The displayed education groups ranged from 15.20% for College and High School to 21.06% for Doctorate.
+- Marital-status rates ranged from 15.13% for Married to 17.22% for Unknown.
+- Income-category rates ranged from 13.48% for `$60K - $80K` to 17.33% for `$120K +`.
+- The displayed card-category rates ranged from 14.77% for Silver to 25.00% for Platinum.
 
-*Figure 3. Correlations between selected numerical features.*
+**Usefulness:** These charts help identify groups for further investigation and communicate the patterns in an understandable way. Some categories, such as Platinum or Doctorate, may contain relatively few customers, so their percentages can be less stable. These are descriptive associations and do not show that the category causes churn.
 
-### 5.6 Attrition rate across categorical features
+### 4.6 Compared numerical features by attrition status
 
-For categorical columns with no more than 15 unique values, the notebook calculates a row-normalised cross-tabulation and plots the percentage of attrited customers by category. This includes relevant categories such as gender, education, marital status, income category, and card category when present in the data.
+Boxplots were drawn for each numerical feature with separate boxes for existing and attrited customers.
 
-**Why it matters:** Percentages make categories with different numbers of customers easier to compare than raw counts alone.
+**Why:** This allows a direct visual comparison of the distributions in the two target groups, including their medians, spread, and unusual values.
 
-![Attrition rates across categorical features](images/attrition-rate-categorical-features.png)
+**Usefulness:** A feature that looks different between groups may be helpful for prediction and worth examining more closely. A visual difference alone does not establish that a feature is important in a model.
 
-*Figure 4. Percentage of attrited customers across selected categorical features.*
+### 4.7 Detected possible outliers with the IQR rule
 
-### 5.7 Numerical features by attrition status
+For each numerical feature, the notebook calculated the first quartile (Q1), third quartile (Q3), and interquartile range (IQR = Q3 − Q1). It flagged values below `Q1 − 1.5 × IQR` or above `Q3 + 1.5 × IQR`.
 
-The notebook creates boxplots comparing each selected numerical feature for `Existing Customer` and `Attrited Customer`.
+The largest flagged percentages in the full dataset were:
 
-**Why it matters:** These comparisons help show whether feature distributions differ between the two attrition groups. Any differences should be interpreted as associations, not proof of causation.
+| Feature | IQR flags | Percentage |
+|---|---:|---:|
+| Credit_Limit | 984 | 9.72% |
+| Avg_Open_To_Buy | 963 | 9.51% |
+| Total_Trans_Amt | 896 | 8.85% |
+| Contacts_Count_12_mon | 629 | 6.21% |
+| Total_Amt_Chng_Q4_Q1 | 396 | 3.91% |
 
-![Numerical features by attrition status](images/numerical-features-by-attrition.png)
+**Why:** IQR provides a consistent, simple way to find unusually distant values without assuming a normal distribution.
 
-*Figure 5. Selected numerical features compared between existing and attrited customers.*
+**Usefulness:** The summary helps prioritize which features to inspect. In this banking dataset, high credit limits or transaction amounts may be legitimate customer behavior, so the IQR result should not be treated as proof of an error.
 
-### 5.8 IQR outlier summary
+### 4.8 Split the data and removed flagged training rows
 
-The notebook calculates the first quartile (Q1), third quartile (Q3), interquartile range (IQR), lower and upper limits, outlier counts, and outlier percentages for selected numerical columns.
+The target was mapped to numbers (`Existing Customer` = 0 and `Attrited Customer` = 1). The data was split into 80% training data and 20% test data using stratification. The IQR limits were then calculated on the training data. Rows outside the selected limits in any chosen continuous numerical feature were removed from the training set; the test data was kept unchanged.
 
-The IQR limits are:
+| Stage | Rows |
+|---|---:|
+| Training set before outlier removal | 8,101 |
+| Training rows flagged and removed | 2,170 (26.79%) |
+| Training set after removal | 5,931 |
+| Test set kept unchanged | 2,026 |
 
-- `IQR = Q3 - Q1`
-- `Lower limit = Q1 - 1.5 × IQR`
-- `Upper limit = Q3 + 1.5 × IQR`
+**Why split first:** The test set is meant to represent unseen data. Calculating outlier thresholds using it would allow information from the test set to influence preprocessing. Keeping it unchanged also preserves a more realistic evaluation set.
 
-Values outside these limits are flagged for investigation.
+**Important interpretation:** Removing **26.79%** of the training records is a large change. The row rule removes a record if it is flagged in any selected feature, so moderately unusual values across several columns can add up to many removed records. This could remove legitimate customers or change the target-class balance. Before using this result in a final model, compare the number and class percentages before and after removal, inspect examples, and consider keeping the records or capping extreme values instead. If removal is retained, explain the reason and report the effect.
 
-## 6. Preprocessing: Work Remaining
+### 4.9 Encoded categories and standardized numerical features
 
-The notebook includes basic duplicate and target-missing-value handling, an IQR outlier summary, an outlier-removal demonstration, categorical encoding, and demonstrations of standardisation and Min-Max scaling. The results and assumptions still need to be reviewed and validated before treating the preprocessing as final.
+The notebook uses a preprocessing pipeline:
 
-### 6.1 Finalise data cleaning
+- **Median imputation** for numerical values, if missing values occur later.
+- **StandardScaler** for numerical features, which centers values around a mean of 0 and scales them to a standard deviation of 1.
+- **Most-frequent imputation** for categorical values, if missing values occur later.
+- **One-hot encoding** to turn categories into binary indicator columns. `handle_unknown='ignore'` allows the transformer to handle a category that did not appear in training.
 
-- Review the missing-value results and decide how to handle missing values, if any.
-- Investigate duplicate rows before removing them.
-- Confirm the final dataset shape after cleaning.
-- Keep the original data available so that cleaning decisions can be compared and reproduced.
+The preprocessing is fitted on the training set and then applied to both training and test sets. The recorded output has **37 processed features**, with 5,931 training rows and 2,026 test rows.
 
-### 6.2 Finalise feature selection
+**Why:** Many machine learning methods work better when numeric inputs are on comparable scales. Models also need categorical values represented numerically. Fitting the transformations on training data only prevents test-set information from influencing the learned scaling or category representation.
 
-- Exclude `CLIENTNUM` from predictive input features.
-- Investigate the `Naive_Bayes_Classifier_` columns and remove them from the future feature set if they create target leakage.
-- Keep `Attrition_Flag` as the target, not as an input feature.
-- Review strongly correlated or redundant features before deciding whether any should be removed.
+**Usefulness:** The same fitted preprocessing can be reused consistently for future data. Standardization is especially useful for distance-based and regularized models. Tree-based models often need less scaling, but encoding is still needed by many implementations.
 
-### 6.3 Decide how to treat outliers
+## 5. Overall workflow
 
-The notebook currently calculates IQR outlier counts and percentages. The next step is to review the results feature by feature and choose a justified treatment.
+```mermaid
+flowchart TD
+    A[Load BankChurners.csv] --> B[Inspect shape, types and summary]
+    B --> C[Check missing values and duplicates]
+    C --> D[Explore target and feature distributions]
+    D --> E[Compare churn across categories and numeric features]
+    E --> F[Flag possible outliers with IQR]
+    F --> G[Encode target and split train/test]
+    G --> H[Remove selected IQR rows from training set]
+    H --> I[Impute, standardize numeric features, one-hot encode categories]
+    I --> J[Prepared training and test data for modeling]
+```
 
-- **Capping:** Limit extreme values to chosen lower and upper bounds while retaining the row.
-- **Trimming:** Remove rows that meet a justified outlier rule, which can discard legitimate customer records.
-- **No change:** Keep legitimate extreme values when they represent plausible customer behaviour.
+## 6. Conclusion
 
-Do not automatically remove every row that contains an IQR outlier. Features such as credit limits and transaction amounts may have legitimate extreme values. Bounded features and discrete counts should also be reviewed before applying a generic rule.
+The analysis gives a broad view of the dataset: it is complete, contains 10,127 records, and has a target class imbalance with 16.07% attrited customers. The notebook uses graphs to explore numerical distributions, possible outliers, correlations, and churn rates across customer groups. It also prepares model inputs by excluding identifier and target-derived fields, splitting the data, applying IQR-based training-row removal, encoding categorical features, and standardizing numerical features.
 
-The notebook defines `df_clean` and `outlier_columns` in earlier cells. Before accepting the result, review whether removing a row for an IQR outlier in any feature removes too many legitimate customer records, and compare row counts before and after treatment.
-
-### 6.4 Encode categorical features
-
-- Identify categorical input columns.
-- Use one-hot encoding for nominal categories where appropriate.
-- Convert `Attrition_Flag` to a binary target only when needed, with the class mapping documented.
-- Do not assign arbitrary numeric values to nominal categories if that would imply a false ordering.
-
-### 6.5 Scale numerical features
-
-- Demonstrate `StandardScaler` for standardisation.
-- Demonstrate `MinMaxScaler` as an alternative where useful.
-- Do not scale the target column or identifier columns.
-- If a model is added later, fit scalers on training data only and use the fitted scaler to transform validation/test data.
-
-### 6.6 Validate the final preprocessed data
-
-- Check the final shape and data types.
-- Confirm that no unintended missing values remain.
-- Confirm that categorical encoding worked as expected.
-- Review the scaled feature ranges.
-- Verify that the target and any leakage-prone columns are not included in the input features.
-
-## 7. Tools and Libraries
-
-- Python
-- Jupyter Notebook
-- pandas
-- NumPy
-- Matplotlib
-- Seaborn
-- scikit-learn preprocessing tools (planned for scaling and encoding)
-
-## 8. How to Run the Notebook
-
-1. Place the notebook and `BankChurners.csv` in the same folder, or update the CSV path in the notebook.
-2. Install the required packages:
-
-   ```bash
-   pip install pandas numpy matplotlib seaborn scikit-learn jupyter
-   ```
-
-3. Open Jupyter Notebook or JupyterLab.
-4. Open `customer_churn_analysis.ipynb`.
-5. Run the cells in order and resolve any undefined variables before running the affected cells.
-
-## 9. Current Project Status
-
-| Component | Status |
-|---|---|
-| Dataset loading and inspection | Started / present in notebook |
-| Target distribution plot | Present in notebook |
-| Numerical histograms | Present in notebook |
-| Numerical boxplots | Present in notebook |
-| Correlation heatmap | Present in notebook and included above |
-| Categorical attrition-rate plots | Present in notebook |
-| Numerical features by attrition | Present in notebook |
-| Missing-value and duplicate checks | Present; results need review |
-| IQR outlier summary | Present in notebook |
-| Outlier treatment demonstration | Present; review whether row removal is justified |
-| Categorical encoding | Demonstrated; validate encoded features |
-| Standardisation and normalisation | Demonstrated; use train-only fitting when modelling |
-| Final preprocessing validation | Still required |
-| Model training and evaluation | Not included yet |
-
-## 10. Limitations and Future Work
-
-The current project is focused on EDA and preprocessing. It does not yet train a churn classifier, report predictive performance, produce churn probabilities, or calculate the financial return of retention actions.
-
-After preprocessing is complete, possible future work includes a leakage-safe train/test split, training and comparing classification models, evaluating precision/recall/F1-score and ROC-AUC, and translating validated predictions into a retention-priority workflow. These are future extensions, not current results.
-
----
-
-**Project title:** Customer Churn Prediction and Retention Optimisation Using Machine Learning  
-**Team:** Team ChurnGuard  
+The main point to revisit is the outlier-removal result: it removes over one quarter of the training rows. That decision should be justified with a comparison of class balance and model results, or replaced with a less aggressive treatment if the flagged values are valid customers. Also ensure the correlation matrix is created in the notebook before running the heatmap cell from a fresh kernel.
